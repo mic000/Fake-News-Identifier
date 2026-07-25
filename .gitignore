@@ -1,1 +1,5 @@
 data/*.csv.gz
+.DS_Store
+part3_output/
+
+*.npz
