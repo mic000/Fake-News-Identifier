@@ -209,7 +209,7 @@ def main():
     if not input_path.exists():
         raise FileNotFoundError(f"Input file was not found: {input_path.resolve()}")
 
-    output_dir = Path(args.output_dir) / f"{args.target_per_class}perclass"
+    output_dir = Path(args.output_dir)
 
     run_pipeline(
         input_path=input_path,
