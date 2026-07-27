@@ -154,16 +154,84 @@ svm_result, svm_cm = evaluate_model("SVM", svm_model, X_test, y_test)
 dt_result, dt_cm = evaluate_model("Decision Tree", dt_model, X_test, y_test)
 rf_result, rf_cm = evaluate_model("Random Forest", rf_model, X_test, y_test)
 
-results_df = pd.DataFrame([
-    svm_result,
-    dt_result,
-    rf_result
-])
 
+# ==============================
+# Part 5 Output
+# ==============================
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay
+
+
+output_dir = "part5_output"
+os.makedirs(output_dir, exist_ok=True)
+
+# Save model performance table
+
+results_df = pd.DataFrame([svm_result, dt_result,rf_result])
+
+results_df.to_csv(
+    os.path.join(output_dir, "advanced_model_results.csv"),
+    index=False
+)
+
+print("Saved advanced_model_results.csv")
+
+# Save confusion matrix figures
+confusion_matrices = {
+    "Linear_SVM": svm_cm,
+    "Decision_Tree": dt_cm,
+    "Random_Forest": rf_cm
+}
+
+for model_name, cm in confusion_matrices.items():
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=["Real", "Fake"]
+    )
+
+    disp.plot(cmap="Blues")
+    plt.title(f"{model_name} Confusion Matrix")
+    plt.savefig(
+        os.path.join(
+            output_dir,
+            f"{model_name}_confusion_matrix.png"
+        ),
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    plt.close()
+print("Saved confusion matrix figures")
+
+# Save F1-score comparison plot
+plt.figure(figsize=(7, 4))
+plt.bar(results_df["Model"], results_df["F1"])
+plt.ylabel("F1 Score")
+plt.title("Advanced Model Comparison")
+plt.ylim(0, 1)
+plt.xticks(rotation=45)
+plt.savefig(
+    os.path.join(
+        output_dir,
+        "advanced_model_f1_comparison.png"
+    ),
+    dpi=300,
+    bbox_inches="tight"
+)
+plt.close()
+print("Saved F1 comparison figure")
+
+# Print final results
+print("\nFinal Test Results:")
 print(results_df)
-print("SVM Confusion Matrix:\n", svm_cm)
-print("Decision Tree Confusion Matrix:\n", dt_cm)
-print("Random Forest Confusion Matrix:\n", rf_cm)
-
-
+print("\nConfusion Matrices:")
+print("\nLinear SVM:")
+print(svm_cm)
+print("\nDecision Tree:")
+print(dt_cm)
+print("\nRandom Forest:")
+print(rf_cm)
+print("\nAll Part 5 outputs saved in:", output_dir)
 
