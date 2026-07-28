@@ -28,7 +28,7 @@ Example:
         --input processed/WELFake_part2_preprocessed.csv.gz \
         --output-dir part3_output \
         --target-per-class 1500 \
-        --max-features-unigram 3000 \
+        --max-features 6000 \
         --max-features-bigram 6000 \
 """
 
@@ -111,10 +111,19 @@ def build_vectorizer(kind, max_features):
             max_df=MAX_DF,
             max_features=max_features,
         )
+    if kind == "tfidf_trigram":
+        return TfidfVectorizer(
+            token_pattern=TOKEN_PATTERN,
+            ngram_range=(1, 3),
+            lowercase=False,
+            min_df=MIN_DF,
+            max_df=MAX_DF,
+            max_features=max_features,
+        )
     raise ValueError(f"Unknown vectorizer kind: {kind}")
 
 
-def run_pipeline(input_path, output_dir, target_per_class, max_features_unigram, max_features_bigram):
+def run_pipeline(input_path, output_dir, target_per_class, max_features):
     df = pd.read_csv(input_path)
     for col in ["clean_title", "clean_body", "clean_title_body"]:
         df[col] = df[col].fillna("")
@@ -147,10 +156,8 @@ def run_pipeline(input_path, output_dir, target_per_class, max_features_unigram,
         val_text = df_by_id.loc[ids_by_split["val"], column]
         test_text = df_by_id.loc[ids_by_split["test"], column]
 
-        for kind in ["tfidf_unigram", "tfidf_uni_bigram"]:
-            max_features  = max_features_bigram if "bigram" in kind else max_features_unigram
+        for kind in ["bow_unigram", "tfidf_unigram", "tfidf_uni_bigram", "tfidf_trigram"]:
             vectorizer = build_vectorizer(kind, max_features)
-
             X_train = vectorizer.fit_transform(train_text)
             X_val = vectorizer.transform(val_text)
             X_test = vectorizer.transform(test_text)
@@ -163,7 +170,6 @@ def run_pipeline(input_path, output_dir, target_per_class, max_features_unigram,
             vocabulary = vectorizer.get_feature_names_out().tolist()
             with open(features_dir / f"{prefix}_vocab.json", "w", encoding="utf-8") as f:
                 json.dump(vocabulary, f, ensure_ascii=False, indent=2)
-
             print(f"  {kind}: vocab size = {len(vocabulary):,} | train shape = {X_train.shape}")
 
             summary_rows.append(
@@ -197,12 +203,12 @@ def main():
     parser.add_argument("--target-per-class",
                         type=int, required=True,
                         help="Exact number of articles to keep per label, e.g. 1500 for 1500 real + 1500 fake")
-    parser.add_argument("--max-features-unigram",
-                        type=int, default=3000,
-                        help="Vocabulary size cap for bow_unigram and tfidf_unigram (default: 3000)")
-    parser.add_argument("--max-features-bigram",
+    # parser.add_argument("--max-features-unigram",
+    #                     type=int, default=3000,
+    #                     help="Vocabulary size cap for bow_unigram and tfidf_unigram (default: 3000)")
+    parser.add_argument("--max-features",
                         type=int, default=6000,
-                        help="Vocabulary size cap for tfidf_uni_bigram (default: 6000)")
+                        help="Vocabulary size cap (default: 6000)")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -215,8 +221,8 @@ def main():
         input_path=input_path,
         output_dir=output_dir,
         target_per_class=args.target_per_class,
-        max_features_unigram=args.max_features_unigram,
-        max_features_bigram=args.max_features_bigram,
+        # max_features_unigram=args.max_features_unigram,
+        max_features_bigram=args.max_features,
     )
 
 
