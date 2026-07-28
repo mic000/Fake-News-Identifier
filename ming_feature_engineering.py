@@ -28,8 +28,7 @@ Example:
         --input processed/WELFake_part2_preprocessed.csv.gz \
         --output-dir part3_output \
         --target-per-class 1500 \
-        --max-features 6000 \
-        --max-features-bigram 6000 \
+        --max-features 6000
 """
 
 import argparse
@@ -203,9 +202,6 @@ def main():
     parser.add_argument("--target-per-class",
                         type=int, required=True,
                         help="Exact number of articles to keep per label, e.g. 1500 for 1500 real + 1500 fake")
-    # parser.add_argument("--max-features-unigram",
-    #                     type=int, default=3000,
-    #                     help="Vocabulary size cap for bow_unigram and tfidf_unigram (default: 3000)")
     parser.add_argument("--max-features",
                         type=int, default=6000,
                         help="Vocabulary size cap (default: 6000)")
@@ -221,8 +217,7 @@ def main():
         input_path=input_path,
         output_dir=output_dir,
         target_per_class=args.target_per_class,
-        # max_features_unigram=args.max_features_unigram,
-        max_features_bigram=args.max_features,
+        max_features=args.max_features,
     )
 
 
