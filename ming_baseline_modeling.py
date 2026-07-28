@@ -38,13 +38,13 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 RANDOM_SEED = 123
 INPUT_SETTINGS = ["title", "body", "combined"]
-REPRESENTATIONS = ["tfidf_unigram", "tfidf_uni_bigram"]
+REPRESENTATIONS = ["bow_unigram", "tfidf_unigram", "tfidf_uni_bigram", "tfidf_trigram"]
 LOGREG_C_VALUES = [0.001, 0.01, 0.1, 1, 10]
 NB_ALPHA_VALUES = [0.1, 0.5, 1.0, 2.0, 5.0]
 KNN_K_VALUES = [3, 5, 7, 9, 15, 25]
 
-BASELINE_SETTING = "combined"
-BASELINE_REPRESENTATION = "tfidf_uni_bigram"
+# BASELINE_SETTING = "combined"
+# BASELINE_REPRESENTATION = "tfidf_uni_bigram"
 BASELINE_MODEL = "logistic_regression"
 
 
@@ -173,11 +173,11 @@ def run_one_config(model_name, tune_function, X_train, y_train, X_val, y_val,
         "model": model_name,
         "best_params": best_params,
         "val_f1": val_f1,
-        "test_accuracy": test_metrics["accuracy"],
-        "test_precision": test_metrics["precision"],
-        "test_recall": test_metrics["recall"],
-        "test_f1": test_metrics["f1"],
-        "confusion_matrix": test_confusion,
+        "accuracy": test_metrics["accuracy"],
+        "precision": test_metrics["precision"],
+        "recall": test_metrics["recall"],
+        "f1": test_metrics["f1"],
+        "confusion matrix": test_confusion,
     }
 
 
@@ -199,7 +199,6 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
 
     all_results = []
     confusion_matrices = {}
-    tfidf_uni_bigram_by_setting = {}
     for setting_name in INPUT_SETTINGS:
         for representation in REPRESENTATIONS:
             config_tag = f"{setting_name}_{representation}"
@@ -209,11 +208,6 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
             X_train = matrices["train"]
             X_val = matrices["val"]
             X_test = matrices["test"]
-
-            if representation == "tfidf_uni_bigram":
-                tfidf_uni_bigram_by_setting[setting_name] = matrices
-
-            is_baseline = (setting_name == BASELINE_SETTING and representation == BASELINE_REPRESENTATION)
             model_runs = [
                 ("logistic_regression", tune_logistic_regression),
                 ("naive_bayes", tune_naive_bayes),
@@ -225,38 +219,39 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
                     X_train, y_train, X_val, y_val, X_test, y_test,
                     test_article_ids, config_tag, predictions_dir,
                 )
-                result["input_setting"] = setting_name
+                result["input setting"] = setting_name
                 result["representation"] = representation
-                result["is_baseline"] = bool(is_baseline and model_name == BASELINE_MODEL)
-
+                result["is base model"] = bool(model_name == BASELINE_MODEL)
                 confusion_key = f"{config_tag}_{model_name}"
-                confusion_matrices[confusion_key] = result.pop("confusion_matrix")
+                confusion_matrices[confusion_key] = result.pop("confusion matrix")
                 all_results.append(result)
 
+    # SVD is only computed here setting is tfidf_uni_bigram features
     for setting_name in INPUT_SETTINGS:
         config_tag = f"{setting_name}_svd_reduced"
         print(f"\n=== {config_tag} ===")
 
+        tfidf_matrices = load_sparse_features(features_dir, setting_name, "tfidf_uni_bigram")
         svd_matrices, actual_n_components = compute_svd_features(
-            tfidf_uni_bigram_by_setting[setting_name], svd_n_components)
+            tfidf_matrices, svd_n_components)
 
         print(f"  SVD n_components used: {actual_n_components}")
         result = run_one_config("knn_svd", tune_knn,
             svd_matrices["train"], y_train, svd_matrices["val"], y_val,
             svd_matrices["test"], y_test, test_article_ids, config_tag, predictions_dir)
-        result["input_setting"] = setting_name
+        result["input setting"] = setting_name
         result["representation"] = "tfidf_uni_bigram_svd_reduced"
-        result["is_baseline"] = False
-        result["svd_n_components"] = actual_n_components
+        result["is base model"] = False
+        result["svd n_components"] = actual_n_components
         confusion_key = f"{config_tag}_knn_svd"
-        confusion_matrices[confusion_key] = result.pop("confusion_matrix")
+        confusion_matrices[confusion_key] = result.pop("confusion matrix")
         all_results.append(result)
 
     results_df = pd.DataFrame(all_results)
-    column_order = ["input_setting", "representation", "model", "is_baseline", "best_params", "val_f1",
-                    "test_accuracy", "test_precision", "test_recall", "test_f1", "svd_n_components",]
+    column_order = ["input setting", "representation", "model", "is base model", "best_params", "val_f1",
+                    "accuracy", "precision", "recall", "f1", "svd n_components",]
     results_df = results_df.reindex(columns=column_order)
-    results_df = results_df.sort_values(["input_setting", "representation", "model"])
+    results_df = results_df.sort_values(["input setting", "representation", "model"])
     results_path = output_dir / "results_summary.csv"
     results_df.to_csv(results_path, index=False)
 
@@ -264,8 +259,8 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
     with open(confusion_path, "w", encoding="utf-8") as f:
         json.dump(confusion_matrices, f, indent=2)
 
-    print(results_df.sort_values("test_f1", ascending=False)
-          .head(5)[["input_setting", "representation", "model", "test_f1"]]
+    print(results_df.sort_values("f1", ascending=False)
+          .head(5)[["input setting", "representation", "model", "f1"]]
           .to_string(index=False))
 
     return results_df
