@@ -22,7 +22,8 @@ remove_source_markers() functions below are copied verbatim from
 arunkumar_preprocessing_final_corrected.py for that reason -- don't
 edit one without checking the other stays in sync.
 
-Usage Examples:
+Usage:
+
     pip install gradio joblib scikit-learn scipy pandas
 
     python app.py \
@@ -229,12 +230,26 @@ def predict(title, body, config_label, configs):
 # UI
 # -------------------------------------------------------------------
 
+TEAL = "#028090"
+MINT = "#02C39A"
+INK = "#1B262C"
+
+CUSTOM_THEME = gr.themes.Soft(
+    primary_hue=gr.themes.colors.teal,
+    secondary_hue=gr.themes.colors.emerald,
+).set(
+    button_primary_background_fill=TEAL,
+    button_primary_background_fill_hover=MINT,
+    body_text_color=INK,
+)
+
+
 def build_app(configs):
     labels = sorted(configs.keys())
     default_label = labels[0] if labels else None
 
     with gr.Blocks(title="WELFake: Real vs. Fake News Classifier") as demo:
-        gr.Markdown("# Real vs. Fake News Classifier")
+        gr.Markdown("# 📰 Real vs. Fake News Classifier")
         gr.Markdown(
             "Paste in a news title and/or body, choose a trained model configuration, "
             "and see the prediction. This loads your already-trained models -- it does "
@@ -300,7 +315,7 @@ def main():
         print(f"  - {label}")
 
     demo = build_app(configs)
-    demo.launch(share=args.share)
+    demo.launch(share=args.share, theme=CUSTOM_THEME)
 
 
 if __name__ == "__main__":
