@@ -24,15 +24,16 @@ Output (under --output-dir):
     feature_summary.csv
 
 Example Usage:
-    python part3_downsample_and_features.py \
+    python ming_feature_engineering.py \
         --input processed/WELFake_part2_preprocessed.csv.gz \
         --output-dir part3_output \
-        --target-per-class 1500 \
+        --target-per-class 150000 \
         --max-features 6000
 """
 
 import argparse
 import json
+import joblib
 from pathlib import Path
 
 import pandas as pd
@@ -169,6 +170,7 @@ def run_pipeline(input_path, output_dir, target_per_class, max_features):
             vocabulary = vectorizer.get_feature_names_out().tolist()
             with open(features_dir / f"{prefix}_vocab.json", "w", encoding="utf-8") as f:
                 json.dump(vocabulary, f, ensure_ascii=False, indent=2)
+            joblib.dump(vectorizer, features_dir / f"{prefix}_vectorizer.joblib")
             print(f"  {kind}: vocab size = {len(vocabulary):,} | train shape = {X_train.shape}")
 
             summary_rows.append(

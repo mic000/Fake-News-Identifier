@@ -2,13 +2,13 @@
 Word cloud of the highest-frequency phrases/words in a Part 3 vocabulary.
 
 Example Usage:
-    python top_phrase.py \
-        --vocab part3_outputn/features/combined_tfidf_uni_bigram_vocab.json \
-        --matrix part3_outputn/features/combined_tfidf_uni_bigram_train.npz \
+    python plotting_scripts/top_phrase.py \
+        --vocab part3_output/features/combined_tfidf_uni_bigram_vocab.json \
+        --matrix part3_output/features/combined_tfidf_uni_bigram_train.npz \
         --phrases-only \
         --remove-stopwords \
         --max-words 60 \
-        --output top_phrases_wordcloud.png
+        --output plotting_scripts/top_phrases_wordcloud.png
 
 Drop --phrases-only to include single words too.
 """
@@ -87,7 +87,6 @@ def main():
     parser.add_argument("--width", type=int, default=1600)
     parser.add_argument("--height", type=int, default=900)
     parser.add_argument("--output", default="phrase_wordcloud.png")
-    parser.add_argument("--title", default=None)
     args = parser.parse_args()
 
     vocab = load_vocab(args.vocab)
@@ -108,9 +107,6 @@ def main():
     fig, ax = plt.subplots(figsize=(args.width / 150, args.height / 150), dpi=300)
     ax.imshow(wc, interpolation="bilinear")
     ax.axis("off")
-
-    title = args.title or ("Highest-Frequency Phrases" if args.phrases_only else "Highest-Frequency Terms")
-    ax.set_title(title, fontsize=16, fontweight="bold", color=INK, pad=14)
 
     plt.tight_layout()
     output_path = Path(args.output)

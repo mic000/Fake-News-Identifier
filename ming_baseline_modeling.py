@@ -17,7 +17,7 @@ Outputs (under --output-dir):
         for later error analysis (Part 5).
 
 Example Usage:
-    python part4_baseline_models.py \
+    python ming_baseline_modeling.py \
         --part3-dir part3_output \
         --output-dir part4_output \
         --svd-components 150
@@ -27,6 +27,7 @@ import argparse
 import json
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 from scipy import sparse
@@ -150,7 +151,7 @@ def tune_knn(X_train, y_train, X_val, y_val):
 
 
 def run_one_config(model_name, tune_function, X_train, y_train, X_val, y_val,
-                   X_test, y_test, test_article_ids, config_tag, predictions_dir,):
+                   X_test, y_test, test_article_ids, config_tag, predictions_dir, models_dir,):
     best_model, best_params, val_f1 = tune_function(X_train, y_train, X_val, y_val)
     test_pred = best_model.predict(X_test)
     test_metrics = compute_metrics(y_test, test_pred)
@@ -168,6 +169,8 @@ def run_one_config(model_name, tune_function, X_train, y_train, X_val, y_val,
         predictions_dir / f"{config_tag}_{model_name}_test_predictions.csv",
         index=False,
     )
+    models_dir.mkdir(parents=True, exist_ok=True)
+    joblib.dump(best_model, models_dir / f"{config_tag}_{model_name}.joblib")
 
     return {
         "model": model_name,
@@ -196,6 +199,7 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
 
     output_dir.mkdir(parents=True, exist_ok=True)
     predictions_dir = output_dir / "predictions"
+    models_dir = output_dir / "models"
 
     all_results = []
     confusion_matrices = {}
@@ -217,7 +221,7 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
             for model_name, tune_function in model_runs:
                 result = run_one_config(model_name, tune_function,
                     X_train, y_train, X_val, y_val, X_test, y_test,
-                    test_article_ids, config_tag, predictions_dir,
+                    test_article_ids, config_tag, predictions_dir, models_dir,
                 )
                 result["input setting"] = setting_name
                 result["representation"] = representation
@@ -238,7 +242,7 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
         print(f"  SVD n_components used: {actual_n_components}")
         result = run_one_config("knn_svd", tune_knn,
             svd_matrices["train"], y_train, svd_matrices["val"], y_val,
-            svd_matrices["test"], y_test, test_article_ids, config_tag, predictions_dir)
+            svd_matrices["test"], y_test, test_article_ids, config_tag, predictions_dir, models_dir)
         result["input setting"] = setting_name
         result["representation"] = "tfidf_uni_bigram_svd_reduced"
         result["is base model"] = False
