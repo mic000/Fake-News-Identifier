@@ -159,6 +159,7 @@ rf_result, rf_cm = evaluate_model("Random Forest", rf_model, X_test, y_test)
 # Part 5 Output
 # ==============================
 import os
+import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
@@ -166,6 +167,14 @@ from sklearn.metrics import ConfusionMatrixDisplay
 
 output_dir = "part5_output"
 os.makedirs(output_dir, exist_ok=True)
+
+models_dir = os.path.join(output_dir, "models")
+os.makedirs(models_dir, exist_ok=True)
+
+joblib.dump(svm_model, os.path.join(models_dir, "combined_tfidf_uni_bigram_svm.joblib"))
+joblib.dump(dt_model, os.path.join(models_dir, "combined_tfidf_uni_bigram_decision_tree.joblib"))
+joblib.dump(rf_model, os.path.join(models_dir, "combined_tfidf_uni_bigram_random_forest.joblib"))
+print("Saved trained models to", models_dir)
 
 # Save model performance table
 
@@ -234,4 +243,3 @@ print(dt_cm)
 print("\nRandom Forest:")
 print(rf_cm)
 print("\nAll Part 5 outputs saved in:", output_dir)
-
