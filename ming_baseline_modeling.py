@@ -16,10 +16,10 @@ Outputs (under --output-dir):
         article_id, true label, predicted label for every test row,
         for later error analysis (Part 5).
 
-Example:
-    python part4_baseline_models.py \
-        --part3-dir part3_output \
-        --output-dir part4_output \
+Example Usage:
+    python part4_baseline_models.py
+        --part3-dir part3_output
+        --output-dir part4_output
         --svd-components 150
 """
 

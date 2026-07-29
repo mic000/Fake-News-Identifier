@@ -23,11 +23,11 @@ Output (under --output-dir):
     features/<setting>_<representation>_vocab.json
     feature_summary.csv
 
-Example:
-    python part3_downsample_and_features.py \
-        --input processed/WELFake_part2_preprocessed.csv.gz \
-        --output-dir part3_output \
-        --target-per-class 1500 \
+Example Usage:
+    python part3_downsample_and_features.py
+        --input processed/WELFake_part2_preprocessed.csv.gz
+        --output-dir part3_output
+        --target-per-class 1500
         --max-features 6000
 """
 
