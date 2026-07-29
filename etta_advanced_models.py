@@ -29,6 +29,7 @@ test_df = split_df[split_df.split=="test"]
 y_train = train_df["label"].values
 y_val = val_df["label"].values
 y_test = test_df["label"].values
+test_article_ids = test_df["article_id"].values
 
 
 # ==========================
@@ -118,9 +119,10 @@ def tune_random_forest(X_train, y_train, X_val, y_val):
 
 
 # Evaluate the model
+import os
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score,confusion_matrix)
 
-def evaluate_model(model_name, model, X_test, y_test):
+def evaluate_model(model_name, model, X_test, y_test, test_article_ids, predictions_dir):
 
     pred = model.predict(X_test)
 
@@ -133,6 +135,20 @@ def evaluate_model(model_name, model, X_test, y_test):
     }
 
     cm = confusion_matrix(y_test, pred)
+
+    # Save per-article predictions -- needed later to check whether
+    # different models get the same articles wrong (RQ4).
+    os.makedirs(predictions_dir, exist_ok=True)
+    predictions_df = pd.DataFrame({
+        "article_id": test_article_ids,
+        "true_label": y_test,
+        "predicted_label": pred,
+    })
+    safe_name = model_name.lower().replace(" ", "_")
+    predictions_df.to_csv(
+        os.path.join(predictions_dir, f"combined_tfidf_uni_bigram_{safe_name}_test_predictions.csv"),
+        index=False,
+    )
 
     return result, cm
 
@@ -150,9 +166,10 @@ rf_model, rf_n_estimators, rf_f1 = tune_random_forest(X_train, y_train, X_val, y
 print(f"Best Random Forest Model: n_estimators={rf_n_estimators}, F1={rf_f1}")
 
 # Evaluate the best models on the test set
-svm_result, svm_cm = evaluate_model("SVM", svm_model, X_test, y_test)
-dt_result, dt_cm = evaluate_model("Decision Tree", dt_model, X_test, y_test)
-rf_result, rf_cm = evaluate_model("Random Forest", rf_model, X_test, y_test)
+predictions_dir = "part5_output/predictions"
+svm_result, svm_cm = evaluate_model("SVM", svm_model, X_test, y_test, test_article_ids, predictions_dir)
+dt_result, dt_cm = evaluate_model("Decision Tree", dt_model, X_test, y_test, test_article_ids, predictions_dir)
+rf_result, rf_cm = evaluate_model("Random Forest", rf_model, X_test, y_test, test_article_ids, predictions_dir)
 
 
 # ==============================
