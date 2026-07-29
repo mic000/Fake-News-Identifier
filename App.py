@@ -103,6 +103,14 @@ def build_input_text(setting, raw_title, raw_body):
 
 SETTINGS = ["title", "body", "combined"]
 REPRESENTATIONS = ["bow_unigram", "tfidf_unigram", "tfidf_uni_bigram", "tfidf_trigram"]
+
+# Fixed to the group's established best configuration (highest overall F1
+# across the project, combined + tfidf_uni_bigram). This keeps the UI to
+# one dropdown -- "which model" -- instead of also asking about setting
+# and representation, which were already decided during Part 3/4.
+FIXED_SETTING = "combined"
+FIXED_REPRESENTATION = "tfidf_uni_bigram"
+
 PART4_MODELS = [
     ("logistic_regression", "Logistic Regression"),
     ("naive_bayes", "Naive Bayes"),
@@ -117,57 +125,50 @@ PART5_MODELS = [
 
 def scan_available_configs(part3_dir, part4_dir, part5_dir):
     """
-    Returns a dict: {display_label: config_dict}, where config_dict has
-    enough info to run a prediction (setting, vectorizer_path,
-    model_path, and svd_transformer_path if this config needs one).
+    Returns a dict: {display_label: config_dict}, one entry per MODEL --
+    setting and representation are fixed to FIXED_SETTING /
+    FIXED_REPRESENTATION (the group's established best combination), so
+    the only real choice left is which model to use.
     """
     features_dir = part3_dir / "features"
     configs = {}
+    vectorizer_path = features_dir / f"{FIXED_SETTING}_{FIXED_REPRESENTATION}_vectorizer.joblib"
 
-    # Part 4: Logistic Regression / Naive Bayes / KNN(raw), across every
-    # setting x representation combination that was actually produced.
+    # Part 4: Logistic Regression / Naive Bayes / KNN(raw)
     if part4_dir is not None:
         models_dir = part4_dir / "models"
-        for setting in SETTINGS:
-            for representation in REPRESENTATIONS:
-                vectorizer_path = features_dir / f"{setting}_{representation}_vectorizer.joblib"
-                for model_key, model_label in PART4_MODELS:
-                    model_path = models_dir / f"{setting}_{representation}_{model_key}.joblib"
-                    if vectorizer_path.exists() and model_path.exists():
-                        label = f"{setting} | {representation} | {model_label}"
-                        configs[label] = {
-                            "setting": setting,
-                            "vectorizer_path": vectorizer_path,
-                            "model_path": model_path,
-                            "svd_transformer_path": None,
-                        }
-
-        # KNN + SVD is a special case: model input is the tfidf_uni_bigram
-        # vectorizer's output, further reduced by a saved SVD transformer.
-        for setting in SETTINGS:
-            vectorizer_path = features_dir / f"{setting}_tfidf_uni_bigram_vectorizer.joblib"
-            svd_path = models_dir / f"{setting}_svd_transformer.joblib"
-            model_path = models_dir / f"{setting}_svd_reduced_knn_svd.joblib"
-            if vectorizer_path.exists() and svd_path.exists() and model_path.exists():
-                label = f"{setting} | tfidf_uni_bigram (SVD-reduced) | KNN"
-                configs[label] = {
-                    "setting": setting,
+        for model_key, model_label in PART4_MODELS:
+            model_path = models_dir / f"{FIXED_SETTING}_{FIXED_REPRESENTATION}_{model_key}.joblib"
+            if vectorizer_path.exists() and model_path.exists():
+                configs[model_label] = {
+                    "setting": FIXED_SETTING,
                     "vectorizer_path": vectorizer_path,
                     "model_path": model_path,
-                    "svd_transformer_path": svd_path,
+                    "svd_transformer_path": None,
                 }
 
+        # KNN + SVD: same tfidf_uni_bigram vectorizer, plus a saved SVD
+        # transformer, feeding a separately-trained KNN model.
+        svd_path = models_dir / f"{FIXED_SETTING}_svd_transformer.joblib"
+        knn_svd_model_path = models_dir / f"{FIXED_SETTING}_svd_reduced_knn_svd.joblib"
+        if vectorizer_path.exists() and svd_path.exists() and knn_svd_model_path.exists():
+            configs["KNN (SVD-reduced)"] = {
+                "setting": FIXED_SETTING,
+                "vectorizer_path": vectorizer_path,
+                "model_path": knn_svd_model_path,
+                "svd_transformer_path": svd_path,
+            }
+
     # Part 5: SVM / Decision Tree / Random Forest -- Etta's script only
-    # ever trains on the "combined" setting with tfidf_uni_bigram.
-    if part5_dir is not None:
+    # ever trains on the "combined" + tfidf_uni_bigram configuration,
+    # which is the same one everything else here is fixed to.
+    if part5_dir is not None and FIXED_SETTING == "combined" and FIXED_REPRESENTATION == "tfidf_uni_bigram":
         models_dir = part5_dir / "models"
-        vectorizer_path = features_dir / "combined_tfidf_uni_bigram_vectorizer.joblib"
         for model_key, model_label in PART5_MODELS:
             model_path = models_dir / f"combined_tfidf_uni_bigram_{model_key}.joblib"
             if vectorizer_path.exists() and model_path.exists():
-                label = f"combined | tfidf_uni_bigram | {model_label}"
-                configs[label] = {
-                    "setting": "combined",
+                configs[model_label] = {
+                    "setting": FIXED_SETTING,
                     "vectorizer_path": vectorizer_path,
                     "model_path": model_path,
                     "svd_transformer_path": None,
@@ -240,10 +241,15 @@ def build_app(configs):
             "not retrain anything."
         )
 
+        gr.Markdown(
+            f"Fixed to the group's established best configuration: "
+            f"**{FIXED_SETTING} + {FIXED_REPRESENTATION}**. Pick any trained model below."
+        )
+
         if not labels:
             gr.Markdown(
-                "**No trained model configurations were found.** Make sure you've run "
-                "Part 3 (ming_feature_engineering.py) and Part 4 (ming_baseline_modeling.py) "
+                "**No trained models were found for this configuration.** Make sure you've "
+                "run Part 3 (ming_feature_engineering.py) and Part 4 (ming_baseline_modeling.py) "
                 "-- and optionally Part 5 (etta_advanced_models.py) -- and that you pointed "
                 "--part3-dir / --part4-dir / --part5-dir at the right folders."
             )
@@ -256,7 +262,7 @@ def build_app(configs):
         config_dropdown = gr.Dropdown(
             choices=labels,
             value=default_label,
-            label="Model configuration (setting | representation | model)",
+            label="Model",
         )
 
         predict_button = gr.Button("Predict", variant="primary")
