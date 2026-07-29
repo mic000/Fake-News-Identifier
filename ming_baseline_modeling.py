@@ -76,7 +76,7 @@ def compute_svd_features(tfidf_matrices, n_components):
         "val": svd.transform(tfidf_matrices["val"]),
         "test": svd.transform(tfidf_matrices["test"]),
     }
-    return reduced, safe_n_components
+    return reduced, safe_n_components, svd
 
 
 def compute_metrics(y_true, y_pred):
@@ -169,6 +169,7 @@ def run_one_config(model_name, tune_function, X_train, y_train, X_val, y_val,
         predictions_dir / f"{config_tag}_{model_name}_test_predictions.csv",
         index=False,
     )
+
     models_dir.mkdir(parents=True, exist_ok=True)
     joblib.dump(best_model, models_dir / f"{config_tag}_{model_name}.joblib")
 
@@ -236,8 +237,9 @@ def run_pipeline(part3_dir, output_dir, svd_n_components):
         print(f"\n=== {config_tag} ===")
 
         tfidf_matrices = load_sparse_features(features_dir, setting_name, "tfidf_uni_bigram")
-        svd_matrices, actual_n_components = compute_svd_features(
+        svd_matrices, actual_n_components, svd_transformer = compute_svd_features(
             tfidf_matrices, svd_n_components)
+        joblib.dump(svd_transformer, models_dir / f"{setting_name}_svd_transformer.joblib")
 
         print(f"  SVD n_components used: {actual_n_components}")
         result = run_one_config("knn_svd", tune_knn,
