@@ -2,12 +2,12 @@
 Word cloud of the highest-frequency phrases/words in a Part 3 vocabulary.
 
 Example Usage:
-    python top_phrase.py
-        --vocab part3_outputn/features/combined_tfidf_uni_bigram_vocab.json
-        --matrix part3_outputn/features/combined_tfidf_uni_bigram_train.npz
-        --phrases-only
-        --remove-stopwords
-        --max-words 60
+    python top_phrase.py \
+        --vocab part3_outputn/features/combined_tfidf_uni_bigram_vocab.json \
+        --matrix part3_outputn/features/combined_tfidf_uni_bigram_train.npz \
+        --phrases-only \
+        --remove-stopwords \
+        --max-words 60 \
         --output top_phrases_wordcloud.png
 
 Drop --phrases-only to include single words too.

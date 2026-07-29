@@ -17,9 +17,9 @@ Outputs (under --output-dir):
         for later error analysis (Part 5).
 
 Example Usage:
-    python part4_baseline_models.py
-        --part3-dir part3_output
-        --output-dir part4_output
+    python part4_baseline_models.py \
+        --part3-dir part3_output \
+        --output-dir part4_output \
         --svd-components 150
 """
 
