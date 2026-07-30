@@ -187,6 +187,35 @@ def find_consensus_errors(error_table, model_names, min_models_wrong):
     return consensus[["article_id", "true_label", "n_models_wrong"]], error_table["n_models_wrong"]
 
 
+def find_best_two_models_shared_errors(error_type_df, error_table):
+    ranked = error_type_df.sort_values("total_errors")
+    best_two = ranked.head(2)["model"].tolist()
+    model_a, model_b = best_two
+
+    wrong_a = error_table[f"wrong__{model_a}"] == 1
+    wrong_b = error_table[f"wrong__{model_b}"] == 1
+
+    both_wrong = error_table.loc[wrong_a & wrong_b, ["article_id", "true_label"]].copy()
+    only_a = int((wrong_a & ~wrong_b).sum())
+    only_b = int((~wrong_a & wrong_b).sum())
+
+    n_wrong_a = int(wrong_a.sum())
+    n_wrong_b = int(wrong_b.sum())
+    n_shared = len(both_wrong)
+
+    print(f"\nBest two models (fewest total errors): {model_a} ({n_wrong_a} errors), "
+          f"{model_b} ({n_wrong_b} errors)")
+    print(f"Articles BOTH models got wrong: {n_shared}")
+    print(f"Articles only {model_a} got wrong: {only_a}")
+    print(f"Articles only {model_b} got wrong: {only_b}")
+    if n_wrong_a > 0:
+        print(f"Of {model_a}'s errors, {n_shared / n_wrong_a:.1%} are shared with {model_b}")
+    if n_wrong_b > 0:
+        print(f"Of {model_b}'s errors, {n_shared / n_wrong_b:.1%} are shared with {model_a}")
+
+    return model_a, model_b, both_wrong
+
+
 def main():
     parser = argparse.ArgumentParser(description="RQ4: compare which articles different models misclassify.")
     parser.add_argument("--part4-predictions-dir", default=None, help="Part 4 predictions/ folder")
@@ -227,6 +256,12 @@ def main():
     overlap = compute_pairwise_overlap(error_table, model_names)
     overlap.to_csv(output_dir / "error_overlap_matrix.csv")
     plot_overlap_heatmap(overlap, output_dir / "error_overlap_heatmap.png")
+
+    # --- Best two models: do they share the same errors? ---
+    best_model_a, best_model_b, shared_errors_df = find_best_two_models_shared_errors(error_type_df, error_table)
+    shared_errors_path = output_dir / f"shared_errors_{best_model_a}_vs_{best_model_b}.csv".replace(" ", "_")
+    shared_errors_df.to_csv(shared_errors_path, index=False)
+    print(f"Saved shared-error article list to: {shared_errors_path.resolve()}")
 
     # --- Consensus errors ---
     threshold = args.consensus_threshold or (len(model_names) // 2 + 1)
