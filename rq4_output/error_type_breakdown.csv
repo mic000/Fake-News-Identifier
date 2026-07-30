@@ -1,0 +1,8 @@
+model,total_errors,false_positive (real predicted fake),false_negative (fake predicted real)
+Logistic Regression,292,128,164
+Naive Bayes,978,562,416
+KNN (raw),2004,1838,166
+KNN (SVD),711,413,298
+Linear SVM,278,128,150
+Decision Tree,707,386,321
+Random Forest,409,163,246
